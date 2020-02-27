@@ -1,9 +1,15 @@
 #!/bin/bash
 exec 3>&1 4>&2
 trap 'exec 2>&4 1>&3' 0 1 2 3
-exec 1>/var/log/first-boot.log 2>&1
+exec 1>>/var/log/first-boot.log 2>&1
 set -x
 set -e
+
+# create user
+grep -q "^ubuntu:" /etc/passwd && userdel ubuntu
+grep -q "^ubuntu:" /etc/group && groupdel ubuntu
+
+grep -q "^$LOGIN:" /etc/passwd || useradd -m -u 1000 "$LOGIN"
 
 # set up data disk as DATA_DIR
 # export data="/dev/disk/by-id/google-data
@@ -11,8 +17,8 @@ set -e
 mkdir -p /mnt/disks/data
 if ! mount /dev/disk/by-id/google-data-part1 /mnt/disks/data; then
     # create partition
-    parted /dev/disk/by-id/google-data mktable gpt
-    parted /dev/disk/by-id/google-data mkpart primary 0% 100%
+    parted -s /dev/disk/by-id/google-data mktable gpt
+    parted -s /dev/disk/by-id/google-data mkpart primary 0% 100%
     # format data disk
     mkfs -t ext4 /dev/disk/by-id/google-data-part1
     # mount /dev/disk/by-id/google-data /mnt/
@@ -33,7 +39,7 @@ apt-get update && apt-get upgrade -y
 
 # install docker
 addgroup --system docker
-adduser "$USER" docker
+adduser "$LOGIN" docker
 apt-get install -y \
     apt-transport-https \
     ca-certificates \
@@ -46,7 +52,7 @@ add-apt-repository \
    $(lsb_release -cs) \
    stable"
 apt-get update
-apt-get install -y docker-ce docker-ce-cli containerd.io
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose
 
 # enable docker over tls
 sed -ie 's/-H fd:\/\/ //' /lib/systemd/system/docker.service

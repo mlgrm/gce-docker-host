@@ -8,14 +8,14 @@ set -e
 
 DAYS=${DAYS:-36500}
 HOST=${HOST:-cosima}
-LOGIN=chronos@$HOST
+OS_TYPE=${OS_TYPE:-"ubuntu"}
+[[ "$OS_TYPE" == "cos" ]] && LOGIN="chronos" || LOGIN=${LOGIN:-$USER}
 IP_NAME=${IP_NAME:-$HOST}
 BOOT_DISK_SIZE=${BOOT_DISK_SIZE:-10GB}
 DATA_DISK_NAME=${DATA_DISK_NAME:-$HOST-data}
 DATA_DISK_SIZE=${DATA_DISK_SIZE:-200GB}
-TLS_ARCHIVE=${TLS_ARCHIVE:-"$HOME/$HOST-tls.tgz"}
+TLS_ARCHIVE=${TLS_ARCHIVE:-"$HOST-tls.tgz"}
 DEBUG=${DEBUG:-error}
-OS_TYPE=${OS_TYPE:-"ubuntu"}
 MACHINE_TYPE=${MACHINE_TYPE:-"n1-standard-1"}
 ZONE=${ZONE:-$(gcloud config get-value compute/zone 2> /dev/null)}
 #if [[ $DEBUG = 'true' ]]; then set -x; trap read debug; fi
@@ -98,7 +98,7 @@ if [[ $(echo $IP | wc -w) -ne 1 ]]; then
 fi
 
 # create tls files for server
-tls_dir=$(tls_setup 2> /dev/null)
+tls_dir=$(tls_setup)
 ls $HOME/.docker/{ca,ca-key,key,cert}.pem &> /dev/null ||
     {
         mkdir -p $HOME/.docker
@@ -191,8 +191,8 @@ elif [[ $OS_TYPE == "ubuntu" ]]; then
     tar cz -C $tls_dir {ca,server-cert,server-key}.pem |
         gcloud compute ssh $HOST --command \
         "sudo mkdir -p /etc/docker/tls && sudo tar xz -C /etc/docker/tls/"
-    cat ubuntu-docker-first-boot.sh | envsubst |
-        gcloud compute ssh $HOST --command "sudo bash -x" || true
+#   cat ubuntu-docker-first-boot.sh | envsubst |
+#       gcloud compute ssh $HOST --command "sudo bash -x" || true
 
 else
     >&2 echo "OS_TYPE=$OS_TYPE not recognized"
