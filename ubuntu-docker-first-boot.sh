@@ -54,6 +54,9 @@ add-apt-repository \
 apt-get update
 apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose
 
+# set up keychain so i can log into docker hub
+apt install -y gnupg2 pass
+
 # enable docker over tls
 sed -ie 's/-H fd:\/\/ //' /lib/systemd/system/docker.service
 cat > /etc/docker/daemon.json <<EOF
